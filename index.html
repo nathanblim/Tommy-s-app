@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Tommy's Daily Meal & Weight Tracker</title>
+  
+  <!-- PWA App Icons for Home Screen Pinning (Uses your new photo) -->
+  <link rel="apple-touch-icon" href="https://i.postimg.cc/PqtsvkFw/1793964586081.jpg">
+  <link rel="icon" type="image/jpeg" href="https://i.postimg.cc/PqtsvkFw/1793964586081.jpg">
+
+  <meta name="theme-color" content="#f59e0b" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <style>
+    body { -webkit-tap-highlight-color: transparent; user-select: none; }
+    input[type=number]::-webkit-inner-spin-button, 
+    input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen font-sans text-slate-800">
+  
+  <div class="max-w-md mx-auto min-h-screen bg-slate-50 flex flex-col justify-between shadow-lg relative pb-20">
+    
+    <!-- HEADER (Uses your chibi art) -->
+    <header class="bg-amber-500 text-white p-4 sticky top-0 z-30 shadow-md">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+          <div class="w-11 h-11 rounded-2xl overflow-hidden shadow-inner border-2 border-white/80 bg-white flex-shrink-0">
+            <img src="https://i.postimg.cc/CdpV6pPL/1793960497364.jpg" alt="Tommy" class="w-full h-full object-cover" onerror="this.outerHTML='<div class=\'w-full h-full flex items-center justify-center font-black text-amber-600 text-lg\'>🐱</div>'" />
+          </div>
+          <h1 class="text-xl font-black tracking-tight leading-none">Tommy's App</h1>
+        </div>
+        <span id="sync-badge" class="bg-emerald-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full border border-emerald-400/30 flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> Firebase Live
+        </span>
+      </div>
+    </header>
+
+    <!-- CONTENT PAGES -->
+    <main class="p-4 space-y-5 flex-1">
+      
+      <!-- PAGE 1: DAILY TRACKER -->
+      <div id="page-tracker" class="space-y-4">
+        
+        <!-- DATE NAV BAR -->
+        <section class="bg-white rounded-2xl p-3 border border-amber-200/80 shadow-sm flex items-center justify-between">
+          <button onclick="changeDateOffset(-1)" class="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-900 font-bold active:scale-95 transition-all">‹</button>
+          <div class="text-center">
+            <div id="display-date-label" class="text-sm font-black text-slate-800">Today</div>
+            <button id="btn-return-today" onclick="returnToToday()" class="text-[10px] font-bold text-amber-600 hover:text-amber-700 underline hidden pt-0.5">Return to Today</button>
+          </div>
+          <button id="btn-next-day" onclick="changeDateOffset(1)" class="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 font-bold opacity-50 cursor-not-allowed transition-all" disabled>›</button>
+        </section>
+
+        <!-- MORNING WEIGHT CARD -->
+        <section class="bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-2xl p-4 shadow-sm flex items-center justify-between">
+          <div class="flex items-center space-x-3">
+            <div class="bg-white/20 p-2.5 rounded-xl backdrop-blur-md">
+              <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 6l3 12h12l3-12H3zm9 3v4m0 0l-2-2m2 2l2-2" />
+              </svg>
+            </div>
+            <div>
+              <div class="text-xs text-emerald-100 font-semibold uppercase tracking-wider">Morning Weigh-In</div>
+              <div class="text-xs opacity-80">Track Tommy's daily weight</div>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2 bg-white/10 p-1.5 rounded-xl border border-white/20">
+            <input type="number" step="0.01" id="input-weight" value="4.35" onchange="handleWeightChange(this.value)" class="w-16 bg-transparent text-right font-black text-xl text-white outline-none" />
+            <span class="text-xs font-bold text-emerald-100 pr-1">kg</span>
+          </div>
+        </section>
+
+        <!-- MORNING MEAL -->
+        <section class="bg-amber-50 border border-amber-200 rounded-2xl p-4 shadow-sm space-y-3">
+          <div class="flex justify-between items-center">
+            <h2 class="font-bold text-base text-amber-900 flex items-center gap-1.5"><span>☀️</span> Morning (30g Target)</h2>
+            <button onclick="toggleFed('morningFed')" id="btn-morningFed" class="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 bg-amber-200 text-amber-900">Mark Fed</button>
+          </div>
+          <div class="grid grid-cols-2 gap-3 bg-white p-3 rounded-xl border border-amber-100">
+            <div>
+              <label class="text-[11px] text-slate-500 font-semibold uppercase">Tubes</label>
+              <div class="flex items-center mt-1 border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-amber-500">
+                <input type="number" min="0" max="30" id="input-morningTubes" value="0" oninput="updateCalculations()" class="w-full p-2 text-center font-black text-amber-900 outline-none" />
+                <span class="pr-2 text-xs text-slate-400 font-bold">g</span>
+              </div>
+            </div>
+            <div class="flex flex-col justify-center items-center bg-amber-50/70 rounded-lg border border-dashed border-amber-200">
+              <span class="text-[10px] text-slate-500 font-semibold uppercase">Dish</span>
+              <span id="display-morningDish" class="text-xl font-black text-amber-800">30g</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <label class="flex items-center justify-center p-2.5 bg-white rounded-xl border border-amber-100 cursor-pointer text-xs font-bold text-amber-900 gap-2">
+              <input type="checkbox" id="chk-morningChuru" onchange="updateCalculations()" class="w-4 h-4 rounded accent-amber-600" /> 1/2 Churu
+            </label>
+            <label class="flex items-center justify-center p-2.5 bg-white rounded-xl border border-amber-100 cursor-pointer text-xs font-bold text-amber-900 gap-2">
+              <input type="checkbox" id="chk-morningBroth" onchange="updateCalculations()" class="w-4 h-4 rounded accent-amber-600" /> 30ml Chicken Tea
+            </label>
+          </div>
+        </section>
+
+        <!-- EVENING MEAL -->
+        <section class="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 shadow-sm space-y-3">
+          <div class="flex justify-between items-center">
+            <h2 class="font-bold text-base text-indigo-900 flex items-center gap-1.5"><span>🌙</span> Evening (25g Target)</h2>
+            <button onclick="toggleFed('eveningFed')" id="btn-eveningFed" class="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 bg-indigo-200 text-indigo-900">Mark Fed</button>
+          </div>
+          <div class="grid grid-cols-2 gap-3 bg-white p-3 rounded-xl border border-indigo-100">
+            <div>
+              <label class="text-[11px] text-slate-500 font-semibold uppercase">Tubes</label>
+              <div class="flex items-center mt-1 border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500">
+                <input type="number" min="0" max="25" id="input-eveningTubes" value="0" oninput="updateCalculations()" class="w-full p-2 text-center font-black text-indigo-900 outline-none" />
+                <span class="pr-2 text-xs text-slate-400 font-bold">g</span>
+              </div>
+            </div>
+            <div class="flex flex-col justify-center items-center bg-indigo-50/70 rounded-lg border border-dashed border-indigo-200">
+              <span class="text-[10px] text-slate-500 font-semibold uppercase">Dish</span>
+              <span id="display-eveningDish" class="text-xl font-black text-indigo-800">25g</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <label class="flex items-center justify-center p-2.5 bg-white rounded-xl border border-indigo-100 cursor-pointer text-xs font-bold text-indigo-900 gap-2">
+              <input type="checkbox" id="chk-eveningChuru" onchange="updateCalculations()" class="w-4 h-4 rounded accent-indigo-600" /> 1/2 Churu
+            </label>
+            <label class="flex items-center justify-center p-2.5 bg-white rounded-xl border border-indigo-100 cursor-pointer text-xs font-bold text-indigo-900 gap-2">
+              <input type="checkbox" id="chk-eveningBroth" onchange="updateCalculations()" class="w-4 h-4 rounded accent-indigo-600" /> 30ml Chicken Tea
+            </label>
+          </div>
+        </section>
+
+        <!-- TREAT COUNTER -->
+        <section class="bg-rose-50 border border-rose-200 rounded-2xl p-4 shadow-sm space-y-3">
+          <h2 class="font-bold text-base text-rose-900 flex items-center gap-1.5"><span>🍗</span> Treats Given</h2>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-white p-3 rounded-xl border border-rose-100 flex flex-col items-center">
+              <span class="text-[11px] text-slate-500 font-semibold uppercase mb-1">Chicken</span>
+              <div class="flex items-center gap-3 my-1">
+                <button onclick="adjustTreat('chicken', -1)" class="w-8 h-8 rounded-full bg-slate-100 font-black text-lg text-slate-600 active:bg-slate-200">-</button>
+                <span id="display-treatChicken" class="font-black text-lg text-rose-900">0g</span>
+                <button onclick="adjustTreat('chicken', 1)" class="w-8 h-8 rounded-full bg-rose-100 font-black text-lg text-rose-800 active:bg-rose-200">+</button>
+              </div>
+            </div>
+            <div class="bg-white p-3 rounded-xl border border-rose-100 flex flex-col items-center">
+              <span class="text-[11px] text-slate-500 font-semibold uppercase mb-1">Temptations</span>
+              <div class="flex items-center gap-3 my-1">
+                <button onclick="adjustTreat('temptations', -1)" class="w-8 h-8 rounded-full bg-slate-100 font-black text-lg text-slate-600 active:bg-slate-200">-</button>
+                <span id="display-treatTemptations" class="font-black text-lg text-rose-900">0</span>
+                <button onclick="adjustTreat('temptations', 1)" class="w-8 h-8 rounded-full bg-rose-100 font-black text-lg text-rose-800 active:bg-rose-200">+</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- LATE NIGHT SNACK -->
+        <section class="bg-purple-50 border border-purple-200 rounded-2xl p-4 shadow-sm space-y-3">
+          <div class="flex justify-between items-center">
+            <h2 class="font-bold text-base text-purple-900 flex items-center gap-1.5"><span>🌌</span> Late Night Snack</h2>
+            <button onclick="toggleFed('lateNightFed')" id="btn-lateNightFed" class="px-3.5 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 bg-purple-200 text-purple-900">Mark Fed</button>
+          </div>
+          <div class="bg-white p-3 rounded-xl border border-purple-100 space-y-2">
+            <div class="flex justify-between items-center">
+              <span class="text-xs font-semibold text-slate-600">Chicken Allowance Remaining:</span>
+              <span id="display-lateNightChicken" class="font-black text-purple-900 text-lg">30.0g</span>
+            </div>
+            <div class="flex justify-between items-center pt-2 border-t border-slate-100">
+              <span class="text-xs font-semibold text-slate-600">Fixed Kibble Target:</span>
+              <span class="font-bold text-purple-900 text-sm">5g</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- PLAY SESSIONS -->
+        <section class="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 shadow-sm space-y-2">
+          <h2 class="font-bold text-base text-emerald-900 flex items-center gap-1.5"><span>🎾</span> Play Sessions</h2>
+          <div class="grid grid-cols-3 gap-2 pt-1">
+            <label class="flex flex-col items-center p-2.5 bg-white rounded-xl border border-emerald-100 cursor-pointer text-xs font-bold text-emerald-900">
+              <input type="checkbox" id="chk-playMorning" onchange="updateCalculations()" class="mb-1.5 w-4 h-4 rounded accent-emerald-600" /> Morning
+            </label>
+            <label class="flex flex-col items-center p-2.5 bg-white rounded-xl border border-emerald-100 cursor-pointer text-xs font-bold text-emerald-900">
+              <input type="checkbox" id="chk-playAfternoon" onchange="updateCalculations()" class="mb-1.5 w-4 h-4 rounded accent-emerald-600" /> Afternoon
+            </label>
+            <label class="flex flex-col items-center p-2.5 bg-white rounded-xl border border-emerald-100 cursor-pointer text-xs font-bold text-emerald-900">
+              <input type="checkbox" id="chk-playEvening" onchange="updateCalculations()" class="mb-1.5 w-4 h-4 rounded accent-emerald-600" /> Evening
+            </label>
+          </div>
+        </section>
+      </div>
+
+      <!-- PAGE 2: WEIGHT TRENDS -->
+      <div id="page-weight" class="space-y-5 hidden">
+        <section class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="font-bold text-slate-800 text-base">Weight Analytics</h2>
+            <div class="flex bg-slate-100 p-1 rounded-xl">
+              <button onclick="setPeriod('weekly')" id="btn-period-weekly" class="px-3 py-1 rounded-lg text-xs font-bold transition-all bg-white text-emerald-700 shadow-sm">Weekly</button>
+              <button onclick="setPeriod('monthly')" id="btn-period-monthly" class="px-3 py-1 rounded-lg text-xs font-bold transition-all text-slate-500">Monthly</button>
+              <button onclick="setPeriod('annual')" id="btn-period-annual" class="px-3 py-1 rounded-lg text-xs font-bold transition-all text-slate-500">Annual</button>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between bg-slate-50 p-2 rounded-xl border border-slate-100">
+            <button onclick="scrollTime(-1)" class="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-600 font-bold active:bg-slate-100">‹</button>
+            <span id="display-period-label" class="text-xs font-bold text-slate-700">Current Week</span>
+            <button id="btn-next-period" onclick="scrollTime(1)" class="w-8 h-8 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 font-bold opacity-50 cursor-not-allowed transition-all" disabled>›</button>
+          </div>
+
+          <div class="h-56 relative w-full pt-2">
+            <canvas id="weightChart"></canvas>
+          </div>
+        </section>
+
+        <!-- UNIFORM METRIC CARDS -->
+        <section class="grid grid-cols-3 gap-3">
+          <div class="bg-white p-3 rounded-2xl border border-slate-200 text-center shadow-sm">
+            <span class="text-[10px] text-slate-400 font-bold uppercase block mb-1">Average</span>
+            <span id="stat-avg" class="text-lg font-black text-slate-800">-- kg</span>
+          </div>
+          <div class="bg-white p-3 rounded-2xl border border-slate-200 text-center shadow-sm">
+            <span class="text-[10px] text-slate-400 font-bold uppercase block mb-1">Range</span>
+            <span id="stat-range" class="text-lg font-black text-slate-800">--</span>
+          </div>
+          <div class="bg-white p-3 rounded-2xl border border-slate-200 text-center shadow-sm">
+            <span class="text-[10px] text-slate-400 font-bold uppercase block mb-1">Trend</span>
+            <span id="stat-trend" class="text-lg font-black text-emerald-600">-- kg</span>
+          </div>
+        </section>
+      </div>
+
+    </main>
+
+    <!-- FIXED BOTTOM NAVIGATION BAR -->
+    <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white border-t border-slate-200 flex justify-around py-2 z-40 shadow-lg">
+      <button onclick="switchTab('tracker')" id="nav-tracker" class="flex flex-col items-center text-amber-600 font-bold transition-colors">
+        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        <span class="text-[11px] mt-1">Daily Tracker</span>
+      </button>
+      <button onclick="switchTab('weight')" id="nav-weight" class="flex flex-col items-center font-bold transition-colors text-slate-400">
+        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3C6.48 3 2 7.48 2 13c0 3.87 2.21 7.23 5.46 8.87l.79-1.84C5.55 18.77 4 16.08 4 13c0-4.41 3.59-8 8-8s8 3.59 8 8c0 3.08-1.55 5.77-4.25 7.03l.79 1.84C19.79 20.23 22 16.87 22 13c0-5.52-4.48-10-10-10zm0 4c-3.31 0-6 2.69-6 6 0 1.85.84 3.5 2.16 4.62l1.42-1.42C8.63 15.42 8 14.28 8 13c0-2.21 1.79-4 4-4s4 1.79 4 4c0 1.28-.63 2.42-1.58 3.2l1.42 1.42C17.16 16.5 18 14.85 18 13c0-3.31-2.69-6-6-6zm-1 3h2v4h-2z"/></svg>
+        <span class="text-[11px] mt-1">Weight Trends</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- FIREBASE ENGINE INTEGRATION -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    // REPLACE THIS BLOCK WITH YOUR EXACT FIREBASE CONFIG FROM YOUR SCREENSHOT
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY_HERE",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const dbRef = ref(db, 'dailyDatabase');
+
+    let currentPeriod = 'weekly', periodOffset = 0, dateOffsetDays = 0, chartInstance = null;
+    let dailyDatabase = {};
+    let currentDayData = {};
+
+    // Live Database Listener: Syncs all devices automatically
+    onValue(dbRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        dailyDatabase = data;
+        loadDayData();
+        if (currentPeriod && chartInstance) renderChart();
+      }
+    });
+
+    function saveToFirebase() {
+      set(dbRef, dailyDatabase);
+    }
+
+    function getActiveTrackingDate(offset = 0) {
+      const now = new Date();
+      if (now.getHours() < 2) now.setDate(now.getDate() - 1);
+      now.setDate(now.getDate() + offset);
+      return now;
+    }
+
+    function getFormattedDateKey(offsetDays = 0) {
+      const d = getActiveTrackingDate(offsetDays);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function getLatestRecordedWeight(currentOffset) {
+      for (let i = currentOffset - 1; i >= -30; i--) {
+        const key = getFormattedDateKey(i);
+        if (dailyDatabase[key]?.weight > 0 && dailyDatabase[key]?.hasEnteredWeight) {
+          return dailyDatabase[key].weight;
+        }
+      }
+      return 4.35;
+    }
+
+    function loadDayData() {
+      const key = getFormattedDateKey(dateOffsetDays);
+      if (!dailyDatabase[key]) {
+        dailyDatabase[key] = {
+          morningTubes: 0, eveningTubes: 0, treatChicken: 0, treatTemptations: 0,
+          morningFed: false, eveningFed: false, lateNightFed: false,
+          weight: getLatestRecordedWeight(dateOffsetDays), hasEnteredWeight: true,
+          morningChuru: false, morningBroth: false, eveningChuru: false, eveningBroth: false,
+          playMorning: false, playAfternoon: false, playEvening: false
+        };
+      }
+      currentDayData = dailyDatabase[key];
+      syncUIFromState();
+    }
+
+    function syncUIFromState() {
+      document.getElementById('input-morningTubes').value = currentDayData.morningTubes;
+      document.getElementById('input-eveningTubes').value = currentDayData.eveningTubes;
+      document.getElementById('input-weight').value = currentDayData.weight;
+      
+      ['morningChuru', 'morningBroth', 'eveningChuru', 'eveningBroth', 'playMorning', 'playAfternoon', 'playEvening'].forEach(id => {
+        document.getElementById(`chk-${id}`).checked = currentDayData[id];
+      });
+
+      ['morningFed', 'eveningFed', 'lateNightFed'].forEach(updateFedButtonState);
+      updateCalculations(false);
+    }
+
+    function updateDateDisplay() {
+      const activeDate = getActiveTrackingDate(dateOffsetDays);
+      const nextBtn = document.getElementById('btn-next-day');
+      const label = document.getElementById('display-date-label');
+      const returnBtn = document.getElementById('btn-return-today');
+      const dateString = activeDate.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
+
+      if (dateOffsetDays === 0) {
+        label.innerText = `Today (${dateString})`;
+        nextBtn.disabled = true;
+        nextBtn.className = "w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 font-bold opacity-50 cursor-not-allowed transition-all";
+        returnBtn.classList.add('hidden');
+      } else {
+        label.innerText = dateString;
+        nextBtn.disabled = false;
+        nextBtn.className = "w-9 h-9 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-900 font-bold active:scale-95 transition-all";
+        returnBtn.classList.remove('hidden');
+      }
+      loadDayData();
+    }
+
+    window.changeDateOffset = function(delta) {
+      if (dateOffsetDays + delta > 0) return;
+      dateOffsetDays += delta;
+      updateDateDisplay();
+    };
+
+    window.returnToToday = function() {
+      dateOffsetDays = 0;
+      updateDateDisplay();
+    };
+
+    function updateFedButtonState(key) {
+      const btn = document.getElementById(`btn-${key}`);
+      const isFed = currentDayData[key];
+      const color = key.startsWith('morning') ? 'amber' : key.startsWith('evening') ? 'indigo' : 'purple';
+      btn.className = `px-3.5 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 ${isFed ? 'bg-emerald-600 text-white shadow-sm' : `bg-${color}-200 text-${color}-900`}`;
+      btn.innerText = isFed ? "✓ Served" : "Mark Fed";
+    }
+
+    window.switchTab = function(tab) {
+      document.getElementById('page-tracker').classList.toggle('hidden', tab !== 'tracker');
+      document.getElementById('page-weight').classList.toggle('hidden', tab !== 'weight');
+      document.getElementById('nav-tracker').className = `flex flex-col items-center font-bold transition-colors ${tab === 'tracker' ? 'text-amber-600' : 'text-slate-400'}`;
+      document.getElementById('nav-weight').className = `flex flex-col items-center font-bold transition-colors ${tab === 'weight' ? 'text-emerald-600' : 'text-slate-400'}`;
+      if (tab === 'weight') renderChart();
+    };
+
+    function updateCalculations(shouldPush = true) {
+      currentDayData.morningTubes = Number(document.getElementById('input-morningTubes').value) || 0;
+      currentDayData.eveningTubes = Number(document.getElementById('input-eveningTubes').value) || 0;
+      
+      ['morningChuru', 'morningBroth', 'eveningChuru', 'eveningBroth', 'playMorning', 'playAfternoon', 'playEvening'].forEach(id => {
+        currentDayData[id] = document.getElementById(`chk-${id}`).checked;
+      });
+
+      document.getElementById('display-morningDish').innerText = Math.max(0, 30 - currentDayData.morningTubes) + 'g';
+      document.getElementById('display-eveningDish').innerText = Math.max(0, 25 - currentDayData.eveningTubes) + 'g';
+      
+      document.getElementById('display-treatChicken').innerText = currentDayData.treatChicken + 'g';
+      document.getElementById('display-treatTemptations').innerText = currentDayData.treatTemptations;
+      document.getElementById('display-lateNightChicken').innerText = Math.max(0, 30 - currentDayData.treatChicken - (currentDayData.treatTemptations * 1.5)).toFixed(1) + 'g';
+      
+      const key = getFormattedDateKey(dateOffsetDays);
+      dailyDatabase[key] = currentDayData;
+      if (shouldPush) saveToFirebase();
+    }
+    window.updateCalculations = updateCalculations;
+
+    window.adjustTreat = function(type, delta) {
+      if (type === 'chicken') currentDayData.treatChicken = Math.max(0, currentDayData.treatChicken + delta);
+      else currentDayData.treatTemptations = Math.max(0, currentDayData.treatTemptations + delta);
+      updateCalculations(true);
+    };
+
+    window.toggleFed = function(key) {
+      currentDayData[key] = !currentDayData[key];
+      updateFedButtonState(key);
+      updateCalculations(true);
+    };
+
+    window.handleWeightChange = function(val) {
+      const parsed = parseFloat(val);
+      if (!isNaN(parsed)) {
+        currentDayData.weight = parsed;
+        currentDayData.hasEnteredWeight = true;
+        dailyDatabase[getFormattedDateKey(dateOffsetDays)] = currentDayData;
+        saveToFirebase();
+      }
+      if (chartInstance) renderChart();
+    };
+
+    window.setPeriod = function(period) {
+      currentPeriod = period;
+      periodOffset = 0;
+      ['weekly', 'monthly', 'annual'].forEach(p => {
+        document.getElementById(`btn-period-${p}`).className = `px-3 py-1 rounded-lg text-xs font-bold transition-all ${p === period ? 'bg-white text-emerald-700 shadow-sm' : 'text-slate-500'}`;
+      });
+      renderChart();
+    };
+
+    window.scrollTime = function(direction) {
+      if (periodOffset + direction > 0) return;
+      periodOffset += direction;
+
+      const nextPeriodBtn = document.getElementById('btn-next-period');
+      const disabled = periodOffset >= 0;
+      nextPeriodBtn.disabled = disabled;
+      nextPeriodBtn.className = `w-8 h-8 rounded-lg border flex items-center justify-center font-bold transition-all ${disabled ? 'bg-slate-100 border-slate-200 text-slate-400 opacity-50 cursor-not-allowed' : 'bg-white border-slate-200 text-slate-600 active:bg-slate-100'}`;
+      
+      renderChart();
+    };
+
+    function getChartData() {
+      const now = getActiveTrackingDate(0);
+
+      if (currentPeriod === 'weekly') {
+        const distFromMon = (now.getDay() + 6) % 7;
+        let labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], data = [];
+        let startDatestamp, endDatestamp;
+
+        for (let i = 0; i < 7; i++) {
+          const offset = (periodOffset * 7) - distFromMon + i;
+          const targetDate = getActiveTrackingDate(offset);
+          const dateKey = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
+          if (i === 0) startDatestamp = targetDate;
+          if (i === 6) endDatestamp = targetDate;
+
+          const dayEntry = dailyDatabase[dateKey];
+          data.push(dayEntry?.hasEnteredWeight && dayEntry.weight > 0 ? dayEntry.weight : 0);
+        }
+
+        const fmt = d => `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
+        const dateRangeStr = `${fmt(startDatestamp)} – ${fmt(endDatestamp)}`;
+        document.getElementById('display-period-label').innerText = periodOffset === 0 ? `Current Week (${dateRangeStr})` : periodOffset === -1 ? `Last Week (${dateRangeStr})` : dateRangeStr;
+
+        return { labels, data };
+      } else if (currentPeriod === 'monthly') {
+        const targetDate = new Date(now.getFullYear(), now.getMonth() + periodOffset, 1);
+        const targetYear = targetDate.getFullYear();
+        const targetMonth = targetDate.getMonth();
+
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        document.getElementById('display-period-label').innerText = `${monthNames[targetMonth]} ${targetYear}`;
+
+        let labels = [];
+        let data = [];
+        let d = new Date(targetYear, targetMonth, 1);
+        let distToMon = (d.getDay() + 6) % 7;
+        d.setDate(d.getDate() - distToMon);
+
+        let weekNum = 1;
+        while (d.getMonth() === targetMonth || (d.getFullYear() === targetYear && d.getMonth() < targetMonth && weekNum === 1)) {
+          let weekWeights = [];
+          for (let i = 0; i < 7; i++) {
+            let checkDate = new Date(d);
+            checkDate.setDate(checkDate.getDate() + i);
+            const dateKey = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
+            if (dailyDatabase[dateKey]?.hasEnteredWeight && dailyDatabase[dateKey].weight > 0) {
+              weekWeights.push(dailyDatabase[dateKey].weight);
+            }
+          }
+
+          labels.push(`W${weekNum}`);
+          if (weekWeights.length > 0) {
+            let avgWk = weekWeights.reduce((a, b) => a + b, 0) / weekWeights.length;
+            data.push(Number(avgWk.toFixed(2)));
+          } else {
+            data.push(0);
+          }
+
+          d.setDate(d.getDate() + 7);
+          weekNum++;
+          if (weekNum > 6) break;
+        }
+
+        return { labels, data };
+      } else {
+        const targetYear = now.getFullYear() + periodOffset;
+        document.getElementById('display-period-label').innerText = `${targetYear}`;
+
+        let labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        let data = [];
+
+        for (let m = 0; m < 12; m++) {
+          let monthWeights = [];
+          let daysInMonth = new Date(targetYear, m + 1, 0).getDate();
+          for (let day = 1; day <= daysInMonth; day++) {
+            const checkDate = new Date(targetYear, m, day);
+            const dateKey = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
+            if (dailyDatabase[dateKey]?.hasEnteredWeight && dailyDatabase[dateKey].weight > 0) {
+              monthWeights.push(dailyDatabase[dateKey].weight);
+            }
+          }
+
+          if (monthWeights.length > 0) {
+            let avgMo = monthWeights.reduce((a, b) => a + b, 0) / monthWeights.length;
+            data.push(Number(avgMo.toFixed(2)));
+          } else {
+            data.push(0);
+          }
+        }
+
+        return { labels, data };
+      }
+    }
+
+    function renderChart() {
+      const ctx = document.getElementById('weightChart').getContext('2d');
+      const { labels, data } = getChartData();
+      if (chartInstance) chartInstance.destroy();
+
+      const validData = data.filter(v => v > 0);
+      document.getElementById('stat-avg').innerText = validData.length ? (validData.reduce((a, b) => a + b, 0) / validData.length).toFixed(2) + ' kg' : '-- kg';
+      document.getElementById('stat-range').innerText = validData.length ? `${Math.min(...validData).toFixed(2)}–${Math.max(...validData).toFixed(2)} kg` : '--';
+      document.getElementById('stat-trend').innerText = validData.length >= 2 ? `${(validData.at(-1) - validData[0] >= 0 ? '+' : '')}${(validData.at(-1) - validData[0]).toFixed(2)} kg` : '-- kg';
+
+      const nextPeriodBtn = document.getElementById('btn-next-period');
+      const disabled = periodOffset >= 0;
+      nextPeriodBtn.disabled = disabled;
+      nextPeriodBtn.className = `w-8 h-8 rounded-lg border flex items-center justify-center font-bold transition-all ${disabled ? 'bg-slate-100 border-slate-200 text-slate-400 opacity-50 cursor-not-allowed' : 'bg-white border-slate-200 text-slate-600 active:bg-slate-100'}`;
+
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Weight (kg)',
+            data,
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.35,
+            pointBackgroundColor: '#10b981',
+            pointRadius: data.map(v => v > 0 ? 5 : 0)
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { suggestedMin: 4.00, suggestedMax: 4.60, grid: { color: '#f1f5f9' }, ticks: { font: { size: 10 } } },
+            x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+          }
+        }
+      });
+    }
+
+    updateDateDisplay();
+  </script>
+</body>
+</html>
