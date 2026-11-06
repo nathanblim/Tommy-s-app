@@ -1,0 +1,22 @@
+{
+  "name": "Tommy's Daily Meal & Weight Tracker",
+  "short_name": "Tommy's App",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f59e0b",
+  "icons": [
+    {
+      "src": "https://i.postimg.cc/PqtsvkFw/1793964586081.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://i.postimg.cc/PqtsvkFw/1793964586081.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
